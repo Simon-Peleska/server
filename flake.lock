@@ -1,0 +1,146 @@
+{
+  "nodes": {
+    "disko": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1773506317,
+        "narHash": "sha256-qWKbLUJpavIpvOdX1fhHYm0WGerytFHRoh9lVck6Bh0=",
+        "owner": "nix-community",
+        "repo": "disko",
+        "rev": "878ec37d6a8f52c6c801d0e2a2ad554c75b9353c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "disko",
+        "type": "github"
+      }
+    },
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "go-test-tui": {
+      "inputs": {
+        "flake-utils": [
+          "werewolf",
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "werewolf",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1773572440,
+        "narHash": "sha256-NkGtErsydmghiKytFHAy6DijFjEoY8gYCvwNsBxkPis=",
+        "owner": "Simon-Peleska",
+        "repo": "go-test-tui",
+        "rev": "78655f0ee7d70a65fccdb884462296b6c3e5ffad",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Simon-Peleska",
+        "repo": "go-test-tui",
+        "type": "github"
+      }
+    },
+    "mcp-dap-server-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773329591,
+        "narHash": "sha256-aS/bczAJKvQ2mUzGwADDEBEF9UfDg2SW41LtsztoR6E=",
+        "owner": "go-delve",
+        "repo": "mcp-dap-server",
+        "rev": "b667d9ec074fee1c3e843c96927deb9d8effef44",
+        "type": "github"
+      },
+      "original": {
+        "owner": "go-delve",
+        "repo": "mcp-dap-server",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1773814637,
+        "narHash": "sha256-GNU+ooRmrHLfjlMsKdn0prEKVa0faVanm0jrgu1J/gY=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "fea3b367d61c1a6592bc47c72f40a9f3e6a53e96",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-25.11",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "disko": "disko",
+        "nixpkgs": "nixpkgs",
+        "werewolf": "werewolf"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "werewolf": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "go-test-tui": "go-test-tui",
+        "mcp-dap-server-src": "mcp-dap-server-src",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1773858657,
+        "narHash": "sha256-Q1GFjza+7TxAU00uoWZOhSRaLapc0a59ExVW+Wk7d7M=",
+        "owner": "Simon-Peleska",
+        "repo": "werewolf-go",
+        "rev": "2c87a3b8800f65bd46917c6292a1bac3cfd4b1ae",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Simon-Peleska",
+        "repo": "werewolf-go",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
