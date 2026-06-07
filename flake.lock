@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773506317,
-        "narHash": "sha256-qWKbLUJpavIpvOdX1fhHYm0WGerytFHRoh9lVck6Bh0=",
+        "lastModified": 1773889306,
+        "narHash": "sha256-PAqwnsBSI9SVC2QugvQ3xeYCB0otOwCacB1ueQj2tgw=",
         "owner": "nix-community",
         "repo": "disko",
-        "rev": "878ec37d6a8f52c6c801d0e2a2ad554c75b9353c",
+        "rev": "5ad85c82cc52264f4beddc934ba57f3789f28347",
         "type": "github"
       },
       "original": {
@@ -66,11 +66,11 @@
     "mcp-dap-server-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1773329591,
-        "narHash": "sha256-aS/bczAJKvQ2mUzGwADDEBEF9UfDg2SW41LtsztoR6E=",
+        "lastModified": 1774465697,
+        "narHash": "sha256-q6LEBy0yVeREsjQ/v23dng2eFDzaOINKnqhSMxWrwX0=",
         "owner": "go-delve",
         "repo": "mcp-dap-server",
-        "rev": "b667d9ec074fee1c3e843c96927deb9d8effef44",
+        "rev": "422a5a8bd1106eddac371a0690cdffed5ad766e1",
         "type": "github"
       },
       "original": {
@@ -81,16 +81,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1773814637,
-        "narHash": "sha256-GNU+ooRmrHLfjlMsKdn0prEKVa0faVanm0jrgu1J/gY=",
+        "lastModified": 1780453794,
+        "narHash": "sha256-bXMRa9VTsHSPXL4Cw8R6JJLQeY3Y/IP4+YJCYVmQ7FY=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "fea3b367d61c1a6592bc47c72f40a9f3e6a53e96",
+        "rev": "6b316287bae2ee04c9b93c8c858d930fd07d7338",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-25.11",
+        "ref": "nixos-26.05",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -127,11 +127,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773858657,
-        "narHash": "sha256-Q1GFjza+7TxAU00uoWZOhSRaLapc0a59ExVW+Wk7d7M=",
+        "lastModified": 1776715291,
+        "narHash": "sha256-sRLwS/LFoB3vYpa98GQIKw5K3w5utOAm5LueSrkqugQ=",
         "owner": "Simon-Peleska",
         "repo": "werewolf-go",
-        "rev": "2c87a3b8800f65bd46917c6292a1bac3cfd4b1ae",
+        "rev": "dc3f468101a5afa562240eb70f81344990a55483",
         "type": "github"
       },
       "original": {

@@ -9,6 +9,7 @@
 
 let
   domain = "werewolf.simon-peleska.at";
+  gitDomain = "git.simon-peleska.at";
   sshPubKeys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOwpQ60GkyiUQzKvQXwx+TEVrJ6Gtyr81OXkEshRm/SW"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHFqwByfThvVa8/np6/Ujrz0d6cb3RztwCbY78d25eRA simon@Framework"
@@ -31,7 +32,7 @@ in
   # GPT + 1 MiB BIOS boot partition (required for GRUB on GPT) + ext4 root.
   # https://wiki.nixos.org/wiki/Install_NixOS_on_Hetzner_Cloud
   disko.devices.disk.main = {
-    type   = "disk";
+    type = "disk";
     device = disk;
     content = {
       type = "gpt";
@@ -39,12 +40,12 @@ in
         boot = {
           size = "1M";
           type = "EF02"; # BIOS boot partition — GRUB writes stage 1.5 here
-          priority = 1;  # must be first on disk
+          priority = 1; # must be first on disk
         };
         root = {
           size = "100%";
           content = {
-            type   = "filesystem";
+            type = "filesystem";
             format = "ext4";
             mountpoint = "/";
           };
@@ -58,27 +59,50 @@ in
   # ── Werewolf service ───────────────────────────────────────────────────────
   # API keys go in /etc/werewolf/secrets on the server (never committed).
   # Create it manually:
-  #   echo "STORYTELLER_API_KEY=sk-..." > /etc/werewolf/secrets
-  #   echo "NARRATOR_API_KEY=sk-..."   >> /etc/werewolf/secrets
+  #   echo "OPENAI_API_KEY=sk-..."   > /etc/werewolf/secrets
+  #   echo "NARRATOR_API_KEY=sk-..." >> /etc/werewolf/secrets
   #   chown root:werewolf /etc/werewolf/secrets && chmod 640 /etc/werewolf/secrets
   services.werewolf = {
-    enable  = true;
+    enable = true;
     package = inputs.werewolf.packages.x86_64-linux.default;
 
     environmentFile = "/etc/werewolf/secrets";
 
-    storytellerProvider = "openai"; # Groq is openai-compatible
-    storytellerModel    = "openai/gpt-oss-20b";
-    storytellerUrl      = "https://api.groq.com/openai/v1";
+    storyteller = true;
+    storytellerTemperature = "1.4";
+    openaiModel = "openai/gpt-oss-120b";
+    openaiApiBase = "https://api.groq.com/openai/v1";
 
     narratorProvider = "elevenlabs";
-    narratorVoice    = "hILdTfuUq4LRBMrxHERr";
+    narratorVoice = "c8MZcZcr0JnMAwkwnTIu";
+  };
+
+  # ── Gitea ──────────────────────────────────────────────────────────────────
+  # Self-hosted git. Listens locally on HTTP_PORT; nginx terminates TLS and
+  # reverse-proxies to it (see virtualHosts.${gitDomain} below).
+  # DNS for ${gitDomain} must point at this server's IP before ACME can issue
+  # a certificate for it.
+  services.gitea = {
+    enable = true;
+    appName = "Simon's Gitea";
+    database.type = "sqlite3";
+    settings = {
+      server = {
+        DOMAIN = gitDomain;
+        ROOT_URL = "https://${gitDomain}/";
+        HTTP_ADDR = "127.0.0.1";
+        HTTP_PORT = 3000;
+      };
+      service = {
+        DISABLE_REGISTRATION = true;
+      };
+    };
   };
 
   # ── nginx + HTTPS ──────────────────────────────────────────────────────────
   security.acme = {
     acceptTerms = true;
-    defaults.email = "";   # used for expiry notifications
+    defaults.email = ""; # used for expiry notifications
   };
 
   services.nginx = {
@@ -98,6 +122,15 @@ in
           proxy_read_timeout 3600s;
           proxy_send_timeout 3600s;
         '';
+      };
+    };
+
+    virtualHosts.${gitDomain} = {
+      enableACME = true;
+      forceSSL = true;
+
+      locations."/" = {
+        proxyPass = "http://${config.services.gitea.settings.server.HTTP_ADDR}:${toString config.services.gitea.settings.server.HTTP_PORT}";
       };
     };
   };
@@ -136,7 +169,10 @@ in
       "2a01:4f8:1c19:1d5a::1/64"
     ];
     routes = [
-      { Gateway = "172.31.1.1"; GatewayOnLink = true; }
+      {
+        Gateway = "172.31.1.1";
+        GatewayOnLink = true;
+      }
       { Gateway = "fe80::1"; }
     ];
   };
@@ -160,5 +196,5 @@ in
   # Allow `admin` to run sudo without a password (optional — remove if you prefer typed sudo).
   security.sudo.wheelNeedsPassword = false;
 
-  system.stateVersion = "25.05";
+  system.stateVersion = "26.05";
 }
