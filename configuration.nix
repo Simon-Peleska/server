@@ -10,6 +10,7 @@
 let
   domain = "werewolf.simon-peleska.at";
   gitDomain = "git.simon-peleska.at";
+  jellyfinDomain = "jellyfin.simon-peleska.at";
   sshPubKeys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOwpQ60GkyiUQzKvQXwx+TEVrJ6Gtyr81OXkEshRm/SW"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHFqwByfThvVa8/np6/Ujrz0d6cb3RztwCbY78d25eRA simon@Framework"
@@ -99,6 +100,15 @@ in
     };
   };
 
+  # ── Jellyfin media server ──────────────────────────────────────────────────
+  # Media library, config and metadata live under /var/lib/jellyfin (persisted).
+  # Drop media files somewhere like /srv/media and add libraries via the web UI
+  # at https://jellyfin.simon-peleska.at on first run.
+  services.jellyfin = {
+    enable = true;
+    openFirewall = false; # only reachable through the nginx reverse proxy
+  };
+
   # ── nginx + HTTPS ──────────────────────────────────────────────────────────
   security.acme = {
     acceptTerms = true;
@@ -131,6 +141,24 @@ in
 
       locations."/" = {
         proxyPass = "http://${config.services.gitea.settings.server.HTTP_ADDR}:${toString config.services.gitea.settings.server.HTTP_PORT}";
+      };
+    };
+
+    virtualHosts.${jellyfinDomain} = {
+      enableACME = true;
+      forceSSL = true;
+
+      # Allow large uploads (e.g. when syncing/transcoding); off-by-default in nginx.
+      extraConfig = ''
+        client_max_body_size 20M;
+      '';
+
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:8096"; # Jellyfin's default HTTP port
+        proxyWebsockets = true; # required for the web client's live updates
+        extraConfig = ''
+          proxy_buffering off; # better streaming behaviour
+        '';
       };
     };
   };
