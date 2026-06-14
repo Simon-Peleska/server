@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Deploy the werewolf server to Hetzner.
+# Builds the NixOS closure locally (fast laptop), copies it to the server,
+# and runs only the activation script there.
+#
 # Usage: deploy.sh [--no-update]
 #   --no-update  skip `nix flake update werewolf` (use locked version as-is)
 set -euo pipefail
@@ -20,10 +23,11 @@ if $UPDATE; then
   (cd "$SERVER_DIR" && nix flake update werewolf)
 fi
 
-echo "==> Copying server config to $SERVER:/etc/nixos/..."
-scp "$SERVER_DIR"/*.nix "$SERVER_DIR/flake.lock" "$SERVER":/etc/nixos/
-
-echo "==> Running nixos-rebuild switch on $SERVER..."
-ssh "$SERVER" "sudo nixos-rebuild switch --flake /etc/nixos#server-1"
+echo "==> Building and deploying to $SERVER (build runs locally)..."
+nixos-rebuild switch \
+  --flake "$SERVER_DIR#server-1" \
+  --target-host "$SERVER" \
+  --build-host localhost \
+  --use-remote-sudo
 
 echo "==> Done."

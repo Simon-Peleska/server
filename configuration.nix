@@ -70,12 +70,13 @@ in
     environmentFile = "/etc/werewolf/secrets";
 
     storyteller = true;
+    storytellerLanguage = "de";
     storytellerTemperature = "1.4";
-    openaiModel = "openai/gpt-oss-120b";
-    openaiApiBase = "https://api.groq.com/openai/v1";
+    openaiModel = "openai/gpt-5.5";
+    openaiApiBase = "https://openrouter.ai/api/v1";
 
     narratorProvider = "elevenlabs";
-    narratorVoice = "c8MZcZcr0JnMAwkwnTIu";
+    narratorVoice = "l4QW1L3S9K8vu4mB7I0i";
   };
 
   # ── Gitea ──────────────────────────────────────────────────────────────────
@@ -179,6 +180,10 @@ in
   #   randomizedDelaySec = "1h"; # spread load if you run multiple servers
   #   allowReboot = true; # reboot automatically after kernel upgrades
   # };
+
+  # ── Nix daemon ────────────────────────────────────────────────────────────
+  # Allow admin to push unsigned store paths (needed for remote build via laptop).
+  nix.settings.trusted-users = [ "root" "admin" ];
 
   # ── Machine basics ─────────────────────────────────────────────────────────
   networking.hostName = "server-1";
