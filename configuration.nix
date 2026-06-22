@@ -71,12 +71,16 @@ in
 
     storyteller = true;
     storytellerLanguage = "de";
-    storytellerTemperature = "1.4";
+    storytellerTemperature = "1.5";
+    storytellerMaxTokens = "600";
     openaiModel = "openai/gpt-5.5";
     openaiApiBase = "https://openrouter.ai/api/v1";
 
-    narratorProvider = "elevenlabs";
-    narratorVoice = "l4QW1L3S9K8vu4mB7I0i";
+    narratorProvider = "openai-compatible";
+    narratorVoice = "Algieba";
+    narratorModel = "google/gemini-3.1-flash-tts-preview";
+    # narratorProvider = "elevenlabs";
+    # narratorVoice = "l4QW1L3S9K8vu4mB7I0i";
   };
 
   # ── Gitea ──────────────────────────────────────────────────────────────────

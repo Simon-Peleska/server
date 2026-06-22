@@ -28,6 +28,6 @@ nixos-rebuild switch \
   --flake "$SERVER_DIR#server-1" \
   --target-host "$SERVER" \
   --build-host localhost \
-  --use-remote-sudo
+  --sudo
 
 echo "==> Done."
