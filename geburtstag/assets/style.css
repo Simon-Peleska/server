@@ -1,0 +1,330 @@
+/* ---------------------------------------------------------------
+   Sechs Geschenke — gemeinsames Stylesheet
+   --------------------------------------------------------------- */
+
+:root {
+  --ink: #f4f1ec;
+  --ink-dim: rgba(244, 241, 236, 0.74);
+  --rule: rgba(244, 241, 236, 0.28);
+  --bg: #0b0c0e;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --pad: clamp(1.75rem, 6vw, 6rem);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* --- Hintergrundbild ------------------------------------------- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--focus, 50% 50%);
+  opacity: 0;
+  transform: scale(1.07);
+  animation:
+    photo-in 1.6s var(--ease) forwards,
+    photo-drift 26s var(--ease) forwards;
+}
+
+/* Abdunkelung: unten stark für die Typo, oben nur ein Hauch */
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, rgba(8, 9, 11, 0.95) 0%, rgba(8, 9, 11, 0.82) 22%, rgba(8, 9, 11, 0.42) 48%, rgba(8, 9, 11, 0.08) 74%, rgba(8, 9, 11, 0.38) 100%),
+    radial-gradient(120% 90% at 50% 45%, transparent 35%, rgba(8, 9, 11, 0.5) 100%);
+}
+
+/* --- Textebene -------------------------------------------------- */
+
+.sheet {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--pad);
+  max-width: 68rem;
+}
+
+.eyebrow {
+  margin: 0 0 clamp(0.9rem, 2vw, 1.4rem);
+  font-size: clamp(0.66rem, 1.1vw, 0.78rem);
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+h1 {
+  margin: 0;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(2.5rem, 7.2vw, 6.4rem);
+  line-height: 1.04;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+.rule {
+  margin: clamp(1.6rem, 3.5vw, 2.6rem) 0 0;
+  height: 1px;
+  background: var(--rule);
+  transform-origin: left center;
+  max-width: 34rem;
+}
+
+/* --- Navigation -------------------------------------------------- */
+
+.nav {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(1.2rem, 4vw, 2.5rem);
+  margin-top: clamp(1.2rem, 2.5vw, 1.8rem);
+  font-size: clamp(0.68rem, 1.1vw, 0.8rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.nav a {
+  color: var(--ink-dim);
+  text-decoration: none;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid transparent;
+  transition: color 0.4s var(--ease), border-color 0.4s var(--ease);
+}
+
+.nav a:hover,
+.nav a:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--rule);
+}
+
+.nav .count {
+  margin-left: auto;
+  color: rgba(244, 241, 236, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Auftritt der Elemente --------------------------------------- */
+
+/* Wort-für-Wort: die Maske schneidet, das Innere fährt hoch */
+.w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.14em;   /* Unterlängen nicht abschneiden */
+  margin-bottom: -0.14em;
+}
+
+.w > i {
+  display: inline-block;
+  font-style: inherit;
+  opacity: 0;
+  transform: translateY(115%);
+  animation: rise 1.1s var(--ease) forwards;
+  animation-delay: calc(var(--d) * 70ms + 480ms);
+}
+
+/* Alles andere: einblenden und sanft hochschieben */
+.fade {
+  opacity: 0;
+  transform: translateY(16px);
+  animation: fade-up 1.2s var(--ease) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.rule.fade {
+  transform: translateY(16px) scaleX(0.2);
+  animation-name: fade-up-rule;
+}
+
+@keyframes rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-up {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-up-rule {
+  to { opacity: 1; transform: translateY(0) scaleX(1); }
+}
+
+@keyframes photo-in {
+  to { opacity: 1; }
+}
+
+@keyframes photo-drift {
+  to { transform: scale(1); }
+}
+
+/* --- Übersichtsseite ---------------------------------------------- */
+
+/* Die Liste darf auf kleinen Schirmen scrollen, das Bild bleibt stehen */
+body.index {
+  overflow: auto;
+}
+
+/* Das Porträt steht links, darum rückt der Text nach rechts
+   und die Abdunkelung kommt von dort. */
+.index .stage::after {
+  background:
+    linear-gradient(to left, rgba(8, 9, 11, 0.95) 0%, rgba(8, 9, 11, 0.9) 26%, rgba(8, 9, 11, 0.55) 50%, rgba(8, 9, 11, 0.14) 76%, rgba(8, 9, 11, 0.06) 100%),
+    radial-gradient(100% 85% at 32% 45%, transparent 42%, rgba(8, 9, 11, 0.34) 100%);
+}
+
+.index .sheet {
+  justify-content: center;
+  height: auto;
+  min-height: 100%;
+  max-width: 42rem;
+  margin-left: auto;
+}
+
+/* Kurzer Strich zwischen den beiden Zeilen der Überschrift */
+.rule.trenner {
+  margin: clamp(0.7rem, 1.6vw, 1.1rem) 0;
+  max-width: 6rem;
+}
+
+.gifts {
+  list-style: none;
+  margin: clamp(2rem, 4vw, 3rem) 0 0;
+  padding: 0;
+  max-width: 46rem;
+}
+
+.empty {
+  margin: clamp(2rem, 4vw, 3rem) 0 0;
+  max-width: 26rem;
+  font-size: clamp(0.82rem, 1.3vw, 0.95rem);
+  line-height: 1.7;
+  color: var(--ink-dim);
+}
+
+.gifts li {
+  border-top: 1px solid rgba(244, 241, 236, 0.14);
+}
+
+/* Ein Geschenk nach dem anderen, nicht die ganze Liste auf einmal */
+.gifts li.fade {
+  animation-delay: calc(1150ms + var(--i, 0) * 110ms);
+}
+
+.gifts li:last-child {
+  border-bottom: 1px solid rgba(244, 241, 236, 0.14);
+}
+
+.gifts a {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(1rem, 3vw, 2rem);
+  padding: clamp(0.75rem, 1.8vw, 1.1rem) 0;
+  color: var(--ink-dim);
+  text-decoration: none;
+  transition: color 0.45s var(--ease), padding-left 0.45s var(--ease);
+}
+
+.gifts a:hover,
+.gifts a:focus-visible {
+  color: var(--ink);
+  padding-left: 0.9rem;
+}
+
+.gifts .num {
+  font-size: clamp(0.62rem, 1vw, 0.72rem);
+  letter-spacing: 0.28em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.gifts .title {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(1.25rem, 2.6vw, 1.9rem);
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+/* --- Kleine Schirme ---------------------------------------------- */
+
+@media (max-width: 40rem) {
+  /* Schmal bleibt vom Bild nur ein hoher Streifen übrig; manche Fotos
+     brauchen dafür einen eigenen Ausschnitt. */
+  .stage img {
+    object-position: var(--focus-mobil, var(--focus, 50% 50%));
+  }
+
+  .stage::after {
+    background:
+      linear-gradient(to top, rgba(8, 9, 11, 0.94) 0%, rgba(8, 9, 11, 0.6) 42%, rgba(8, 9, 11, 0.2) 75%, rgba(8, 9, 11, 0.4) 100%);
+  }
+
+  /* Schmal füllt das Porträt das ganze Bild, also gleichmäßig abdunkeln */
+  .index .stage::after {
+    background:
+      linear-gradient(to top, rgba(8, 9, 11, 0.88) 0%, rgba(8, 9, 11, 0.72) 45%, rgba(8, 9, 11, 0.58) 100%);
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    row-gap: 0.7rem;
+  }
+
+  .nav .count {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+/* --- Quer am Telefon: breit genug für zwei Spalten, aber sehr niedrig --- */
+
+@media (orientation: landscape) and (max-height: 30rem) {
+  /* Quer ist der Schirm zu breit für die schmale Abdunkelung und zu kurz
+     für die gleichmäßige: der Text säße sonst im hellen Teil des Porträts. */
+  .index .stage::after {
+    background:
+      linear-gradient(to left, rgba(8, 9, 11, 0.94) 0%, rgba(8, 9, 11, 0.88) 45%, rgba(8, 9, 11, 0.58) 100%);
+  }
+
+  /* Die Spalte bleibt im dunklen Teil, egal wie breit das Gerät ist. */
+  .index .sheet {
+    max-width: min(42rem, 62%);
+    padding-block: clamp(1.5rem, 8vh, 2.5rem);
+  }
+}
+
+/* --- Ruhigere Darstellung, wenn gewünscht ------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .stage img,
+  .w > i,
+  .fade,
+  .rule.fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Geschenk.Titel}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="stage" style="--focus: {{.Geschenk.Focus}}{{with .Geschenk.FocusMobil}}; --focus-mobil: {{.}}{{end}}">
+    <img src="/img/{{.Geschenk.Bild}}" alt="{{.Geschenk.Alt}}">
+  </div>
+
+  <main class="sheet">
+    <h1 data-split>{{.Geschenk.Titel}}</h1>
+    <div class="rule fade" style="--delay: 1150ms"></div>
+    <nav class="nav fade" style="--delay: 1350ms">
+      {{with .Zurueck}}<a href="/{{.Slug}}">&larr; Zurück</a>{{end}}
+      <a href="/">Übersicht</a>
+      {{with .Vor}}<a href="/{{.Slug}}">Weiter &rarr;</a>{{end}}
+      <span class="count">{{printf "%02d" .Geschenk.Nr}} / {{printf "%02d" .Gesamt}}</span>
+    </nav>
+  </main>
+
+  <script src="/assets/reveal.js"></script>
+</body>
+</html>

@@ -11,6 +11,19 @@ let
   domain = "werewolf.simon-peleska.at";
   gitDomain = "git.simon-peleska.at";
   jellyfinDomain = "jellyfin.simon-peleska.at";
+  hermesDomain = "hermes.simon-peleska.at";
+  hermesPort = 9119;
+  geburtstagDomain = "geburtstag.simon-peleska.at";
+  geburtstagPort = 8090;
+
+  # Sylvies Geburtstagsseite — a small Go server; templates, CSS and images are
+  # embedded in the binary, so there is no runtime state at all.
+  geburtstagPkg = pkgs.buildGoModule {
+    pname = "geburtstag";
+    version = "1.0.0";
+    src = ./geburtstag;
+    vendorHash = null; # pure stdlib, no dependencies to vendor
+  };
   sshPubKeys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOwpQ60GkyiUQzKvQXwx+TEVrJ6Gtyr81OXkEshRm/SW"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHFqwByfThvVa8/np6/Ujrz0d6cb3RztwCbY78d25eRA simon@Framework"
@@ -72,8 +85,8 @@ in
     storyteller = true;
     storytellerLanguage = "de";
     storytellerTemperature = "1.5";
-    storytellerMaxTokens = "600";
-    openaiModel = "openai/gpt-5.5";
+    storytellerMaxTokens = "1000";
+    openaiModel = "openai/gpt-5.6-sol";
     openaiApiBase = "https://openrouter.ai/api/v1";
 
     narratorProvider = "openai-compatible";
@@ -82,6 +95,26 @@ in
     # narratorProvider = "elevenlabs";
     # narratorVoice = "l4QW1L3S9K8vu4mB7I0i";
   };
+
+  # ── Hermes agent ───────────────────────────────────────────────────────────
+  # Secrets in /var/lib/hermes/env on the server (OPENROUTER_API_KEY).
+  services.hermes-agent = {
+    enable = true;
+    settings.model = {
+      default = "anthropic/claude-sonnet-5";
+      base_url = "https://openrouter.ai/api/v1";
+    };
+    environmentFiles = [ "/var/lib/hermes/env" ];
+    addToSystemPackages = true;
+  };
+
+  # Serve the web dashboard instead of the module's default `hermes gateway`
+  # (the Telegram/Discord bridge). Bound to loopback, so Hermes' own auth gate
+  # stays off and nginx's basic auth is the only thing guarding it.
+  systemd.services.hermes-agent.serviceConfig.ExecStart = lib.mkForce (
+    "${config.services.hermes-agent.package}/bin/hermes dashboard"
+    + " --no-open --port ${toString hermesPort}"
+  );
 
   # ── Gitea ──────────────────────────────────────────────────────────────────
   # Self-hosted git. Listens locally on HTTP_PORT; nginx terminates TLS and
@@ -114,6 +147,27 @@ in
     openFirewall = false; # only reachable through the nginx reverse proxy
   };
 
+  # ── Geburtstagsseite ───────────────────────────────────────────────────────
+  # Stateless: everything is baked into the binary, the only "state" is a cookie
+  # in the visitor's browser. Runs unprivileged behind the nginx reverse proxy.
+  systemd.services.geburtstag = {
+    description = "Sechs Geschenke — Geburtstagsseite";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+
+    environment.ADDR = "127.0.0.1:${toString geburtstagPort}";
+
+    serviceConfig = {
+      ExecStart = "${geburtstagPkg}/bin/geschenke";
+      Restart = "on-failure";
+      DynamicUser = true;
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      NoNewPrivileges = true;
+    };
+  };
+
   # ── nginx + HTTPS ──────────────────────────────────────────────────────────
   security.acme = {
     acceptTerms = true;
@@ -125,6 +179,17 @@ in
     recommendedProxySettings = true;
     recommendedTlsSettings = true;
     recommendedGzipSettings = true;
+
+    # Catch-all for requests that don't match any server_name below — i.e. scans
+    # aimed at the bare IP or a spoofed Host header. Without this nginx falls
+    # back to the first vhost and proxies that junk straight into the apps.
+    # 444 closes the connection with no response; on 443 the TLS handshake is
+    # refused outright, so no certificate is needed here.
+    virtualHosts."_" = {
+      default = true;
+      rejectSSL = true;
+      extraConfig = "return 444;";
+    };
 
     virtualHosts.${domain} = {
       enableACME = true; # NixOS automatically renews via systemd timer
@@ -146,6 +211,33 @@ in
 
       locations."/" = {
         proxyPass = "http://${config.services.gitea.settings.server.HTTP_ADDR}:${toString config.services.gitea.settings.server.HTTP_PORT}";
+      };
+    };
+
+    # Create the password file on the server (never committed):
+    #   nix-shell -p apacheHttpd --run 'htpasswd -c /etc/nginx/hermes.htpasswd simon'
+    #   chown nginx:nginx /etc/nginx/hermes.htpasswd && chmod 640 ...
+    virtualHosts.${hermesDomain} = {
+      enableACME = true;
+      forceSSL = true;
+      basicAuthFile = "/etc/nginx/hermes.htpasswd";
+
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString hermesPort}";
+        proxyWebsockets = true; # the dashboard talks JSON-RPC over WebSocket
+        extraConfig = ''
+          proxy_read_timeout 3600s;
+          proxy_send_timeout 3600s;
+        '';
+      };
+    };
+
+    virtualHosts.${geburtstagDomain} = {
+      enableACME = true;
+      forceSSL = true;
+
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString geburtstagPort}";
       };
     };
 
@@ -172,6 +264,74 @@ in
     80
     443
   ];
+
+  # ── fail2ban ───────────────────────────────────────────────────────────────
+  # Bans repeat offenders at the firewall, so a scanner that keeps probing stops
+  # costing nginx anything.
+  #
+  # The workhorse is nginx-scan-flood below: it counts 404s and 444s per IP
+  # regardless of what was asked for, so there is no probe-path list to maintain.
+  # Measured against a day of real traffic, legitimate visitors produced at most
+  # ~5 404s (alongside plenty of 200s) while scanners produced 22–271 with almost
+  # no 200s, so 20 in 10 minutes sits well clear of both.
+  services.fail2ban = {
+    enable = true;
+    maxretry = 5;
+    bantime = "1h";
+    # Each repeat ban lasts longer than the last, up to a week.
+    bantime-increment = {
+      enable = true;
+      maxtime = "168h";
+    };
+    jails = {
+      # Any IP racking up 404s or 444s fast, whatever it is probing for. Higher
+      # maxretry than the global default because a single scan run trips it many
+      # times over, while a real visitor never gets close: 20 in 10 minutes is
+      # far above a stray hit on the bare IP but far below any real scan.
+      nginx-scan-flood.settings = {
+        enabled = true;
+        filter = "nginx-scan-flood";
+        logpath = "/var/log/nginx/access.log";
+        backend = "auto";
+        maxretry = 20;
+        findtime = 600;
+      };
+      # Kept alongside the above: it catches the wp-login/phpMyAdmin crowd on the
+      # global 5-strike threshold, well before they reach 20 404s.
+      nginx-botsearch.settings = {
+        enabled = true;
+        logpath = "/var/log/nginx/access.log";
+        backend = "auto";
+      };
+      # Malformed requests — usually port/protocol scanners speaking the wrong
+      # protocol at an HTTPS port.
+      nginx-bad-request.settings = {
+        enabled = true;
+        logpath = "/var/log/nginx/access.log";
+        backend = "auto";
+      };
+      # Brute force against the basic auth on ${hermesDomain}.
+      nginx-http-auth.settings = {
+        enabled = true;
+        logpath = "/var/log/nginx/error.log";
+        backend = "auto";
+      };
+    };
+  };
+
+  # Matches 404s (path not found) and 444s (the catch-all vhost above dropping a
+  # request whose Host header matched no site), keyed on the client IP.
+  # Deliberately path-agnostic — the jail's rate threshold does the work, so this
+  # never needs updating as scanners change what they probe for. The empty [] is
+  # how fail2ban filters spell "the timestamp datepattern consumed this".
+  environment.etc."fail2ban/filter.d/nginx-scan-flood.conf".text = ''
+    [Definition]
+    failregex = ^<HOST> - \S+ \[\] "[^"]*" (?:404|444)\s
+    ignoreregex =
+    datepattern = {^LN-BEG}%%ExY(?P<_sep>[-/.])%%m(?P=_sep)%%d[T ]%%H:%%M:%%S(?:[.,]%%f)?(?:\s*%%z)?
+                  ^[^\[]*\[({DATE})
+                  {^LN-BEG}
+  '';
 
   # ── Automatic OS updates ───────────────────────────────────────────────────
   # Pulls the latest commit from this flake's GitHub repo and switches to it.

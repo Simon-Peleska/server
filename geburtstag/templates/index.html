@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sechs Geschenke</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body class="index">
+  <div class="stage" style="--focus: 38% 42%">
+    <img src="/img/portrait.jpg" alt="Porträt mit rotem Hut">
+  </div>
+
+  <main class="sheet">
+    <p class="eyebrow fade" style="--delay: 260ms">Zum 60. Geburtstag</p>
+    <h1 data-split>Sechs Jahrzehnte</h1>
+    <div class="rule trenner fade" style="--delay: 640ms"></div>
+    <h1 data-split>Sechs Geschenke</h1>
+
+    {{if .Geschenke}}
+    <ul class="gifts">
+      {{range $i, $g := .Geschenke}}
+      <li class="fade" style="--i: {{$i}}">
+        <a href="/{{$g.Slug}}">
+          <span class="num">{{printf "%02d" $g.Nr}}</span>
+          <span class="title">{{$g.Titel}}</span>
+        </a>
+      </li>
+      {{end}}
+    </ul>
+    {{else}}
+    <p class="empty fade" style="--delay: 1150ms">Hier sammelt sich alles, was schon verraten ist.</p>
+    {{end}}
+  </main>
+
+  <script src="/assets/reveal.js"></script>
+</body>
+</html>
