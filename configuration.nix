@@ -15,6 +15,8 @@ let
   hermesPort = 9119;
   geburtstagDomain = "geburtstag.simon-peleska.at";
   geburtstagPort = 8090;
+  willyDomain = "janosch.simon-peleska.at";
+  willyPort = 8095;
 
   # Sylvies Geburtstagsseite — a small Go server; templates, CSS and images are
   # embedded in the binary, so there is no runtime state at all.
@@ -168,6 +170,34 @@ in
     };
   };
 
+  # ── Willy Werkel games ─────────────────────────────────────────────────────
+  # The car and ship games (github.com/Simon-Peleska/schiffe_bauen, site/): a
+  # static site plus a tiny Node server that keeps the saves in SQLite. The
+  # site is built from the game CDs, so it isn't in the Nix store; site/upload
+  # in that repo copies it to /srv/willy (dist/ and server.mjs) and restarts
+  # the service. The saves live in /var/lib/willy.
+  systemd.tmpfiles.rules = [ "d /srv/willy 0755 admin users -" ];
+
+  systemd.services.willy = {
+    description = "Willy Werkel games";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+    unitConfig.ConditionPathExists = "/srv/willy/server.mjs";
+
+    serviceConfig = {
+      ExecStart =
+        "${pkgs.nodejs_24}/bin/node /srv/willy/server.mjs --dir /srv/willy/dist"
+        + " --db /var/lib/willy/saves.sqlite --host 127.0.0.1 --port ${toString willyPort}";
+      Restart = "on-failure";
+      DynamicUser = true;
+      StateDirectory = "willy";
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      NoNewPrivileges = true;
+    };
+  };
+
   # ── nginx + HTTPS ──────────────────────────────────────────────────────────
   security.acme = {
     acceptTerms = true;
@@ -229,6 +259,24 @@ in
           proxy_read_timeout 3600s;
           proxy_send_timeout 3600s;
         '';
+      };
+    };
+
+    # Create the password file on the server (never committed):
+    #   nix-shell -p apacheHttpd --run 'htpasswd -c /etc/nginx/janosch.htpasswd janosch'
+    #   chown root:nginx /etc/nginx/janosch.htpasswd && chmod 640 ...
+    virtualHosts.${willyDomain} = {
+      enableACME = true;
+      forceSSL = true;
+      basicAuthFile = "/etc/nginx/janosch.htpasswd";
+
+      # the games send all their saves in one request
+      extraConfig = ''
+        client_max_body_size 60M;
+      '';
+
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString willyPort}";
       };
     };
 
