@@ -18,18 +18,18 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Not following our nixpkgs — its uv2nix build expects unstable.
-    hermes-agent.url = "github:NousResearch/hermes-agent";
+    # # Not following our nixpkgs — its uv2nix build expects unstable.
+    # hermes-agent.url = "github:NousResearch/hermes-agent";
   };
 
-  outputs = { self, nixpkgs, disko, werewolf, hermes-agent }: {
+  outputs = { self, nixpkgs, disko, werewolf /* , hermes-agent */ }: {
     nixosConfigurations.server-1 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inputs = { inherit werewolf; }; };
       modules = [
         disko.nixosModules.disko
         werewolf.nixosModules.werewolf
-        hermes-agent.nixosModules.default
+        # hermes-agent.nixosModules.default
         ./configuration.nix
       ];
     };

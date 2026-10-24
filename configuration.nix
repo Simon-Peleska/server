@@ -11,12 +11,13 @@ let
   domain = "werewolf.simon-peleska.at";
   gitDomain = "git.simon-peleska.at";
   jellyfinDomain = "jellyfin.simon-peleska.at";
-  hermesDomain = "hermes.simon-peleska.at";
-  hermesPort = 9119;
+  # hermesDomain = "hermes.simon-peleska.at";
+  # hermesPort = 9119;
   geburtstagDomain = "geburtstag.simon-peleska.at";
   geburtstagPort = 8090;
   willyDomain = "janosch.simon-peleska.at";
   willyPort = 8095;
+  mosaicDomain = "mosaic.simon-peleska.at";
 
   # Sylvies Geburtstagsseite — a small Go server; templates, CSS and images are
   # embedded in the binary, so there is no runtime state at all.
@@ -98,25 +99,25 @@ in
     # narratorVoice = "l4QW1L3S9K8vu4mB7I0i";
   };
 
-  # ── Hermes agent ───────────────────────────────────────────────────────────
-  # Secrets in /var/lib/hermes/env on the server (OPENROUTER_API_KEY).
-  services.hermes-agent = {
-    enable = true;
-    settings.model = {
-      default = "anthropic/claude-sonnet-5";
-      base_url = "https://openrouter.ai/api/v1";
-    };
-    environmentFiles = [ "/var/lib/hermes/env" ];
-    addToSystemPackages = true;
-  };
+  # # ── Hermes agent ───────────────────────────────────────────────────────────
+  # # Secrets in /var/lib/hermes/env on the server (OPENROUTER_API_KEY).
+  # services.hermes-agent = {
+    # enable = true;
+    # settings.model = {
+      # default = "anthropic/claude-sonnet-5";
+      # base_url = "https://openrouter.ai/api/v1";
+    # };
+    # environmentFiles = [ "/var/lib/hermes/env" ];
+    # addToSystemPackages = true;
+  # };
 
-  # Serve the web dashboard instead of the module's default `hermes gateway`
-  # (the Telegram/Discord bridge). Bound to loopback, so Hermes' own auth gate
-  # stays off and nginx's basic auth is the only thing guarding it.
-  systemd.services.hermes-agent.serviceConfig.ExecStart = lib.mkForce (
-    "${config.services.hermes-agent.package}/bin/hermes dashboard"
-    + " --no-open --port ${toString hermesPort}"
-  );
+  # # Serve the web dashboard instead of the module's default `hermes gateway`
+  # # (the Telegram/Discord bridge). Bound to loopback, so Hermes' own auth gate
+  # # stays off and nginx's basic auth is the only thing guarding it.
+  # systemd.services.hermes-agent.serviceConfig.ExecStart = lib.mkForce (
+    # "${config.services.hermes-agent.package}/bin/hermes dashboard"
+    # + " --no-open --port ${toString hermesPort}"
+  # );
 
   # ── Gitea ──────────────────────────────────────────────────────────────────
   # Self-hosted git. Listens locally on HTTP_PORT; nginx terminates TLS and
@@ -176,7 +177,10 @@ in
   # site is built from the game CDs, so it isn't in the Nix store; site/upload
   # in that repo copies it to /srv/willy (dist/ and server.mjs) and restarts
   # the service. The saves live in /var/lib/willy.
-  systemd.tmpfiles.rules = [ "d /srv/willy 0755 admin users -" ];
+  systemd.tmpfiles.rules = [
+    "d /srv/willy 0755 admin users -"
+    "d /srv/mosaic 0755 admin users -"
+  ];
 
   systemd.services.willy = {
     description = "Willy Werkel games";
@@ -186,7 +190,7 @@ in
 
     serviceConfig = {
       ExecStart =
-        "${pkgs.nodejs_24}/bin/node /srv/willy/server.mjs --dir /srv/willy/dist"
+        "${pkgs.nodejs_22}/bin/node /srv/willy/server.mjs --dir /srv/willy/dist"
         + " --db /var/lib/willy/saves.sqlite --host 127.0.0.1 --port ${toString willyPort}";
       Restart = "on-failure";
       DynamicUser = true;
@@ -244,23 +248,23 @@ in
       };
     };
 
-    # Create the password file on the server (never committed):
-    #   nix-shell -p apacheHttpd --run 'htpasswd -c /etc/nginx/hermes.htpasswd simon'
-    #   chown nginx:nginx /etc/nginx/hermes.htpasswd && chmod 640 ...
-    virtualHosts.${hermesDomain} = {
-      enableACME = true;
-      forceSSL = true;
-      basicAuthFile = "/etc/nginx/hermes.htpasswd";
+    # # Create the password file on the server (never committed):
+    # #   nix-shell -p apacheHttpd --run 'htpasswd -c /etc/nginx/hermes.htpasswd simon'
+    # #   chown nginx:nginx /etc/nginx/hermes.htpasswd && chmod 640 ...
+    # virtualHosts.${hermesDomain} = {
+      # enableACME = true;
+      # forceSSL = true;
+      # basicAuthFile = "/etc/nginx/hermes.htpasswd";
 
-      locations."/" = {
-        proxyPass = "http://127.0.0.1:${toString hermesPort}";
-        proxyWebsockets = true; # the dashboard talks JSON-RPC over WebSocket
-        extraConfig = ''
-          proxy_read_timeout 3600s;
-          proxy_send_timeout 3600s;
-        '';
-      };
-    };
+      # locations."/" = {
+        # proxyPass = "http://127.0.0.1:${toString hermesPort}";
+        # proxyWebsockets = true; # the dashboard talks JSON-RPC over WebSocket
+        # extraConfig = ''
+          # proxy_read_timeout 3600s;
+          # proxy_send_timeout 3600s;
+        # '';
+      # };
+    # };
 
     # Create the password file on the server (never committed):
     #   nix-shell -p apacheHttpd --run 'htpasswd -c /etc/nginx/janosch.htpasswd janosch'
@@ -278,6 +282,17 @@ in
       locations."/" = {
         proxyPass = "http://127.0.0.1:${toString willyPort}";
       };
+    };
+
+    virtualHosts.${mosaicDomain} = {
+      enableACME = true;
+      forceSSL = true;
+      root = "/srv/mosaic";
+      basicAuthFile = "/etc/nginx/mosaic.htpasswd";
+      locations."/".tryFiles = "$uri $uri/ =404";
+      extraConfig = ''
+        add_header Cache-Control "private, no-cache" always;
+      '';
     };
 
     virtualHosts.${geburtstagDomain} = {
@@ -358,7 +373,7 @@ in
         logpath = "/var/log/nginx/access.log";
         backend = "auto";
       };
-      # Brute force against the basic auth on ${hermesDomain}.
+      # Brute force against the basic auth on ${willyDomain} and ${mosaicDomain}.
       nginx-http-auth.settings = {
         enabled = true;
         logpath = "/var/log/nginx/error.log";

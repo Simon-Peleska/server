@@ -27,6 +27,6 @@ echo "==> Building and deploying to $SERVER (build runs locally)..."
 nixos-rebuild switch \
   --flake "$SERVER_DIR#server-1" \
   --target-host "$SERVER" \
-  --build-host localhost \
-  --ask-sudo-password
+  --sudo \
+  --use-substitutes
 echo "==> Done."
