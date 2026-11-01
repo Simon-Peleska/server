@@ -230,8 +230,8 @@ let
     name = "daily-check-report";
     runtimeInputs = [
       pkgs.coreutils pkgs.findutils pkgs.gnugrep pkgs.gnused pkgs.gawk pkgs.curl
-      pkgs.iproute2 pkgs.procps pkgs.util-linux pkgs.vulnix claude
-      config.systemd.package config.networking.firewall.package
+      pkgs.iproute2 pkgs.procps pkgs.util-linux pkgs.vulnix pkgs.git claude
+      config.nix.package config.systemd.package config.networking.firewall.package
       config.services.fail2ban.package notify
     ];
     text = ''
@@ -303,9 +303,23 @@ let
       [ "$usep" -lt 90 ] || bad+="disk $usep% full; "
 
       step=vulnix
+      # vulnix needs the .drv of every package. Systems deployed from the desktop
+      # arrive without them, so evaluate the repo (recreates .drv files, no
+      # build) and scan each runtime path's deriver that exists on this host.
+      if [ -d "$STATE/repo/.git" ]; then
+        (cd "$STATE/repo" && nix path-info --derivation .#nixosConfigurations.server-1.config.system.build.toplevel > /dev/null) \
+          || echo "warning: could not evaluate repo to recreate .drv files"
+      fi
+      nix-store -qR /run/current-system | xargs -r nix-store -qd 2>/dev/null \
+        | grep -v '^unknown-deriver' | sort -u > drvs.all || true
+      : > drvs
+      while read -r d; do [ ! -e "$d" ] || echo "$d" >> drvs; done < drvs.all
+      [ -s drvs ] || { echo "no derivations found for /run/current-system"; false; }
+      mapfile -t drvlist < drvs
       rc=0
-      as_dc vulnix --cache-dir "$STATE/.cache/vulnix" -C /run/current-system > vulnix.txt 2>&1 || rc=$?
+      as_dc vulnix --cache-dir "$STATE/.cache/vulnix" -R "''${drvlist[@]}" > vulnix.txt 2>&1 || rc=$?
       [ "$rc" = 0 ] || [ "$rc" = 2 ] || { echo "vulnix exit $rc"; tail -n 20 vulnix.txt; false; }
+      echo "coverage: scanned $(wc -l < drvs) of $(wc -l < drvs.all) runtime packages ($(($(wc -l < drvs.all) - $(wc -l < drvs))) had no .drv on this host)" >> vulnix.txt
       nvuln=$(grep -cE '^[A-Za-z0-9_.+-]+-[0-9][^ ]*$' vulnix.txt || true)
       chgrp -R dailycheck "$RUN"; chmod -R g+rX "$RUN"
 
