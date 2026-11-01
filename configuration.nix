@@ -214,6 +214,15 @@ in
     recommendedTlsSettings = true;
     recommendedGzipSettings = true;
 
+    # mosaic stamps every script/asset URL with ?v=<content hash>, so those can
+    # be cached forever; index.html and unstamped JSON must still revalidate.
+    appendHttpConfig = ''
+      map $arg_v $mosaic_cache_control {
+        "" "private, no-cache";
+        default "private, max-age=31536000, immutable";
+      }
+    '';
+
     # Catch-all for requests that don't match any server_name below — i.e. scans
     # aimed at the bare IP or a spoofed Host header. Without this nginx falls
     # back to the first vhost and proxies that junk straight into the apps.
@@ -290,8 +299,15 @@ in
       root = "/srv/mosaic";
       basicAuthFile = "/etc/nginx/mosaic.htpasswd";
       locations."/".tryFiles = "$uri $uri/ =404";
+      # Vienna tiles are named by their content hash.
+      locations."/assets/vienna/" = {
+        tryFiles = "$uri =404";
+        extraConfig = ''
+          add_header Cache-Control "private, max-age=31536000, immutable" always;
+        '';
+      };
       extraConfig = ''
-        add_header Cache-Control "private, no-cache" always;
+        add_header Cache-Control $mosaic_cache_control always;
       '';
     };
 

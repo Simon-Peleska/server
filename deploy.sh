@@ -18,6 +18,16 @@ for arg in "$@"; do
   esac
 done
 
+# The server's daily-check job deploys origin/main every night and pushes its
+# flake.lock updates back, so pick those up before building.
+echo "==> Pulling latest from origin..."
+(cd "$SERVER_DIR" && git pull --rebase --autostash)
+if [ -n "$(cd "$SERVER_DIR" && git status --porcelain)" ] || \
+   [ -n "$(cd "$SERVER_DIR" && git log --oneline @{u}.. 2>/dev/null)" ]; then
+  echo "WARNING: uncommitted or unpushed changes — the nightly daily-check on the"
+  echo "         server deploys origin/main and will revert them unless you push."
+fi
+
 if $UPDATE; then
   echo "==> Updating werewolf input in flake.lock..."
   (cd "$SERVER_DIR" && nix flake update werewolf)
