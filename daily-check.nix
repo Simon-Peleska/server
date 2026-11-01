@@ -263,10 +263,15 @@ let
       {
         echo "## System"
         echo "kernel: $(uname -r)   uptime: $(uptime)"
-        if [ "$(readlink -f /run/current-system)" = "$(readlink -f /run/booted-system)" ]; then
-          echo "booted system == current system"
+        # Only kernel/initrd/modules need a reboot; other differences are applied live by switch.
+        kdiff=""
+        for f in kernel initrd kernel-modules; do
+          [ "$(readlink -f "/run/booted-system/$f")" = "$(readlink -f "/run/current-system/$f")" ] || kdiff+="$f "
+        done
+        if [ -z "$kdiff" ]; then
+          echo "kernel/initrd/modules match the booted system: no reboot needed"
         else
-          echo "booted system != current system (reboot pending)"
+          echo "REBOOT PENDING: $kdiff differ from the booted system"
         fi
         echo; echo "## Failed units"
         failed=$(systemctl --failed --no-legend --plain)
