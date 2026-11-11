@@ -314,7 +314,7 @@ let
       } > health.txt 2>&1
       # A failed ACME renewal is retried by its timer and Let's Encrypt often
       # 400s transiently; only the cert expiry below decides whether it matters.
-      [ -z "$(systemctl --failed --no-legend --plain | grep -v 'acme-order-renew-')" ] || bad+="failed units; "
+      ! systemctl --failed --no-legend --plain | grep -qv 'acme-order-renew-' || bad+="failed units; "
       while read -r d _ days _; do
         [ "$days" -ge 21 ] || bad+="TLS cert for $d expires in $days days; "
       done < <(grep ' cert_days_left ' health.txt)
