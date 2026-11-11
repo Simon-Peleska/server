@@ -215,7 +215,11 @@ let
                   internet-facing component is live.
       ATTENTION = something the owner should act on (a fix available that isn't
                   deployed, failed unit, warnings, disk > 85 %, unexpected open
-                  port, suspicious logins). Don't use ATTENTION for issues the
+                  port, suspicious logins, a TLS cert with < 21 days left).
+                  A failed acme-order-renew-* unit alone is NOT a reason for
+                  ATTENTION: its timer retries and Let's Encrypt often fails
+                  transiently; mention it only if that cert has < 21 days left
+                  (see "TLS certificates" in health.txt). Don't use ATTENTION for issues the
                   previous report already raised that the owner can't act on yet;
                   list those under "Known" instead.
       OK        = nothing to do.
@@ -230,7 +234,7 @@ let
     name = "daily-check-report";
     runtimeInputs = [
       pkgs.coreutils pkgs.findutils pkgs.gnugrep pkgs.gnused pkgs.gawk pkgs.curl
-      pkgs.iproute2 pkgs.procps pkgs.util-linux pkgs.vulnix pkgs.git claude
+      pkgs.iproute2 pkgs.procps pkgs.util-linux pkgs.vulnix pkgs.git pkgs.openssl claude
       config.nix.package config.systemd.package config.networking.firewall.package
       config.services.fail2ban.package notify
     ];
@@ -283,6 +287,19 @@ let
         done <<'EOF'
       ${lib.concatStringsSep "\n" sites}
       EOF
+        # Read straight from disk: no TLS connections, so nothing for fail2ban
+        # (nginx logs a handshake-only connection as a 400 bad request).
+        echo; echo "## TLS certificates (days left, from /var/lib/acme)"
+        while read -r d _; do
+          f=/var/lib/acme/$d/cert.pem
+          if end=$(openssl x509 -noout -enddate -in "$f" 2>/dev/null | cut -d= -f2); then
+            echo "$d cert_days_left $(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 )) (expires $end)"
+          else
+            echo "$d cert_days_left -1 (no readable cert at $f)"
+          fi
+        done <<'EOF'
+      ${lib.concatStringsSep "\n" sites}
+      EOF
         echo; echo "## Disk"; df -h / | tail -n1
         echo; echo "## Memory"; free -h
         echo; echo "## Listening sockets (non-loopback)"
@@ -295,7 +312,12 @@ let
         echo; echo "## Successful SSH logins, last 24h"
         journalctl -u sshd --since -24h --no-pager -q | grep -E 'Accepted ' | tail -n 20 || true
       } > health.txt 2>&1
-      [ -z "$(systemctl --failed --no-legend --plain)" ] || bad+="failed units; "
+      # A failed ACME renewal is retried by its timer and Let's Encrypt often
+      # 400s transiently; only the cert expiry below decides whether it matters.
+      [ -z "$(systemctl --failed --no-legend --plain | grep -v 'acme-order-renew-')" ] || bad+="failed units; "
+      while read -r d _ days _; do
+        [ "$days" -ge 21 ] || bad+="TLS cert for $d expires in $days days; "
+      done < <(grep ' cert_days_left ' health.txt)
       while read -r d want got; do
         [ "$want" = "$got" ] || bad+="$d returned $got (expected $want); "
       done < <(grep ' expected ' health.txt | awk '{print $1, $3, $5}')
