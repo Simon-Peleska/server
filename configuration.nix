@@ -18,6 +18,8 @@ let
   willyDomain = "janosch.simon-peleska.at";
   willyPort = 8095;
   mosaicDomain = "mosaic.simon-peleska.at";
+  calDomain = "cal.simon-peleska.at";
+  calPort = 5232;
 
   # Sylvies Geburtstagsseite — a small Go server; templates, CSS and images are
   # embedded in the binary, so there is no runtime state at all.
@@ -171,6 +173,33 @@ in
     };
   };
 
+  # ── CalDAV ─────────────────────────────────────────────────────────────────
+  # Loopback only. nginx terminates TLS and does the basic auth, then passes the
+  # user name in X-Remote-User, so the server has no passwords of its own and
+  # every user only sees /<user>/. Events are plain files in /var/lib/caldav.
+  systemd.services.caldav = {
+    description = "CalDAV server";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+
+    environment = {
+      ADDR = "127.0.0.1:${toString calPort}";
+      DATA_DIR = "/var/lib/caldav";
+    };
+
+    serviceConfig = {
+      ExecStart = "${inputs.caldav-server.packages.x86_64-linux.default}/bin/caldav";
+      Restart = "on-failure";
+      DynamicUser = true;
+      StateDirectory = "caldav";
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      NoNewPrivileges = true;
+      MemoryMax = "64M";
+    };
+  };
+
   # ── Willy Werkel games ─────────────────────────────────────────────────────
   # The car and ship games (github.com/Simon-Peleska/schiffe_bauen, site/): a
   # static site plus a tiny Node server that keeps the saves in SQLite. The
@@ -309,6 +338,25 @@ in
       extraConfig = ''
         add_header Cache-Control $mosaic_cache_control always;
       '';
+    };
+
+    # Create the password file on the server (never committed). The basic-auth
+    # user name is the CalDAV user; point clients at https://${calDomain}/
+    #   nix-shell -p apacheHttpd --run 'htpasswd -B -c /etc/nginx/caldav.htpasswd simon'
+    #   chown root:nginx /etc/nginx/caldav.htpasswd && chmod 640 ...
+    virtualHosts.${calDomain} = {
+      enableACME = true;
+      forceSSL = true;
+      basicAuthFile = "/etc/nginx/caldav.htpasswd";
+
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString calPort}";
+        extraConfig = ''
+          proxy_set_header X-Remote-User $remote_user;
+        '';
+      };
+      # Clients probe these to find the server.
+      locations."/.well-known/caldav".return = "301 /";
     };
 
     virtualHosts.${geburtstagDomain} = {

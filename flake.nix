@@ -20,12 +20,18 @@
       url = "github:Simon-Peleska/werewolf-go";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Minimal CalDAV server. Run `nix flake update caldav-server` to pull the latest.
+    caldav-server = {
+      url = "github:Simon-Peleska/caldav-server";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
 
     # # Not following our nixpkgs — its uv2nix build expects unstable.
     # hermes-agent.url = "github:NousResearch/hermes-agent";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, disko, werewolf /* , hermes-agent */ }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko, werewolf, caldav-server /* , hermes-agent */ }:
   let
     system = "x86_64-linux";
     pkgsUnstable = import nixpkgs-unstable {
@@ -35,7 +41,7 @@
   in {
     nixosConfigurations.server-1 = nixpkgs.lib.nixosSystem {
       inherit system;
-      specialArgs = { inputs = { inherit werewolf; }; inherit pkgsUnstable; };
+      specialArgs = { inputs = { inherit werewolf caldav-server; }; inherit pkgsUnstable; };
       modules = [
         disko.nixosModules.disko
         werewolf.nixosModules.werewolf
