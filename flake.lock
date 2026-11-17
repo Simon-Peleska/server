@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794863223,
-        "narHash": "sha256-LswqJyYbLfKsAZbL59IAjJ7sRxqRwPOpLKVFf/VJyr8=",
+        "lastModified": 1794895784,
+        "narHash": "sha256-1GI8kAWXwk/K1VgCgqBRKNYyY91XRRjf4xweFZ+dWw0=",
         "owner": "Simon-Peleska",
         "repo": "caldav-server",
-        "rev": "f50ca773129ae52d597e3799ef39ba0542eea597",
+        "rev": "f3730df13e5a47f99f6fb96ec23a8741e71d6eec",
         "type": "github"
       },
       "original": {
