@@ -39,6 +39,7 @@ let
     "jellyfin.simon-peleska.at 302"
     "mosaic.simon-peleska.at 401"
     "janosch.simon-peleska.at 401"
+    "cal.simon-peleska.at 401"
   ];
 
   claude = pkgsUnstable.claude-code;
