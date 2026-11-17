@@ -186,6 +186,7 @@ in
       ADDR = "127.0.0.1:${toString calPort}";
       DATA_DIR = "/var/lib/caldav";
       TURSO_GO_CACHE_DIR = "/tmp";
+      TZ = "Europe/Vienna";
     };
 
     serviceConfig = {
