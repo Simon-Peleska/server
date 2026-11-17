@@ -469,8 +469,8 @@ in
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.gc = {
     automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 10d";
+    dates = "daily";
+    options = "--delete-older-than 3d";
   };
   nix.optimise.automatic = true;
   boot.loader.grub.configurationLimit = 10;
