@@ -470,7 +470,11 @@ in
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = "--delete-older-than 30d";
+    options = "--delete-older-than 10d";
   };
-  boot.loader.grub.configurationLimit = 20;
+  nix.optimise.automatic = true;
+  boot.loader.grub.configurationLimit = 10;
+
+  # The journal was 3.6 GB with no limit.
+  services.journald.extraConfig = "SystemMaxUse=500M";
 }
