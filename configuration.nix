@@ -185,7 +185,7 @@ in
     environment = {
       ADDR = "127.0.0.1:${toString calPort}";
       DATA_DIR = "/var/lib/caldav";
-      TURSO_GO_CACHE_DIR = "/var/cache/caldav";
+      TURSO_GO_CACHE_DIR = "/tmp";
     };
 
     serviceConfig = {
@@ -193,7 +193,6 @@ in
       Restart = "on-failure";
       DynamicUser = true;
       StateDirectory = "caldav";
-      CacheDirectory = "caldav";
       ProtectSystem = "strict";
       ProtectHome = true;
       PrivateTmp = true;
