@@ -56,7 +56,16 @@
               gitea = pkgsUnstable.gitea;
               # nginx HTTP/2 CVE-2026-123633/123007: fixed in 1.30.7 / 1.31.9.
               # Take nginx from unstable to get the fix as early as possible.
-              nginx = pkgsUnstable.nginx;
+              # Until then, build 1.30.7 ourselves; this stops applying by itself
+              # once nixpkgs ships >= 1.30.7.
+              nginxStable = pkgsUnstable.nginxStable.overrideAttrs (old:
+                nixpkgs.lib.optionalAttrs (nixpkgs.lib.versionOlder old.version "1.30.7") {
+                  version = "1.30.7";
+                  src = prev.fetchurl {
+                    url = "https://nginx.org/download/nginx-1.30.7.tar.gz";
+                    sha256 = "0vmw20kcgc3gyibd77rlmm14bjibiv2763zvf27ra3h56z4bar95";
+                  };
+                });
             })
           ];
         }
