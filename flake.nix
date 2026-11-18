@@ -54,6 +54,9 @@
           nixpkgs.overlays = [
             (final: prev: {
               gitea = pkgsUnstable.gitea;
+              # nginx HTTP/2 CVE-2026-123633/123007: fixed in 1.30.7 / 1.31.9.
+              # Take nginx from unstable to get the fix as early as possible.
+              nginx = pkgsUnstable.nginx;
             })
           ];
         }
