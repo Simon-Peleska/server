@@ -19,6 +19,17 @@ let
   willyPort = 8095;
   mosaicDomain = "mosaic.simon-peleska.at";
   mosaicWienDomain = "mosaic.wien";
+  mosaicWienSite = {
+    enableACME = true;
+    forceSSL = true;
+    root = "/srv/mosaic-wien";
+    basicAuthFile = "/etc/nginx/mosaic-wien.htpasswd";
+    locations."/".tryFiles = "$uri $uri/ =404";
+    extraConfig = ''
+      gzip_static on;
+      add_header Cache-Control "no-cache" always;
+    '';
+  };
   calDomain = "cal.simon-peleska.at";
   calPort = 5232;
 
@@ -349,22 +360,9 @@ in
     # committed):
     #   nix-shell -p apacheHttpd --run 'htpasswd -B -c /etc/nginx/mosaic-wien.htpasswd mosaic'
     #   chown root:nginx /etc/nginx/mosaic-wien.htpasswd && chmod 640 ...
-    virtualHosts.${mosaicWienDomain} = {
-      enableACME = true;
-      forceSSL = true;
-      root = "/srv/mosaic-wien";
-      basicAuthFile = "/etc/nginx/mosaic-wien.htpasswd";
-      locations."/".tryFiles = "$uri $uri/ =404";
-      extraConfig = ''
-        gzip_static on;
-        add_header Cache-Control "no-cache" always;
-      '';
-    };
-    virtualHosts."www.${mosaicWienDomain}" = {
-      enableACME = true;
-      forceSSL = true;
-      globalRedirect = mosaicWienDomain;
-    };
+    virtualHosts.${mosaicWienDomain} = mosaicWienSite;
+    # Plain alias with its own cert for now; was a redirect to the bare domain.
+    virtualHosts."www.${mosaicWienDomain}" = mosaicWienSite;
 
     # Create the password file on the server (never committed). The basic-auth
     # user name is the CalDAV user; point clients at https://${calDomain}/
