@@ -18,6 +18,7 @@ let
   willyDomain = "janosch.simon-peleska.at";
   willyPort = 8095;
   mosaicDomain = "mosaic.simon-peleska.at";
+  mosaicWienDomain = "mosaic.wien";
   calDomain = "cal.simon-peleska.at";
   calPort = 5232;
 
@@ -211,6 +212,7 @@ in
   systemd.tmpfiles.rules = [
     "d /srv/willy 0755 admin users -"
     "d /srv/mosaic 0755 admin users -"
+    "d /srv/mosaic-wien 0755 admin users -"
   ];
 
   systemd.services.willy = {
@@ -342,6 +344,28 @@ in
       '';
     };
 
+    # Static site uploaded to /srv/mosaic-wien (not content-hash stamped, so it
+    # revalidates on every load). Create the password file on the server (never
+    # committed):
+    #   nix-shell -p apacheHttpd --run 'htpasswd -B -c /etc/nginx/mosaic-wien.htpasswd mosaic'
+    #   chown root:nginx /etc/nginx/mosaic-wien.htpasswd && chmod 640 ...
+    virtualHosts.${mosaicWienDomain} = {
+      enableACME = true;
+      forceSSL = true;
+      root = "/srv/mosaic-wien";
+      basicAuthFile = "/etc/nginx/mosaic-wien.htpasswd";
+      locations."/".tryFiles = "$uri $uri/ =404";
+      extraConfig = ''
+        gzip_static on;
+        add_header Cache-Control "no-cache" always;
+      '';
+    };
+    virtualHosts."www.${mosaicWienDomain}" = {
+      enableACME = true;
+      forceSSL = true;
+      globalRedirect = mosaicWienDomain;
+    };
+
     # Create the password file on the server (never committed). The basic-auth
     # user name is the CalDAV user; point clients at https://${calDomain}/
     #   nix-shell -p apacheHttpd --run 'htpasswd -B -c /etc/nginx/caldav.htpasswd simon'
@@ -439,7 +463,7 @@ in
         logpath = "/var/log/nginx/access.log";
         backend = "auto";
       };
-      # Brute force against the basic auth on ${willyDomain} and ${mosaicDomain}.
+      # Brute force against the basic auth on ${willyDomain}, ${mosaicDomain} and ${mosaicWienDomain}.
       nginx-http-auth.settings = {
         enabled = true;
         logpath = "/var/log/nginx/error.log";
